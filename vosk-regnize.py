@@ -33,7 +33,7 @@ async def read_dir():
 
         await asyncio.gather(*(process_with_semaphore(task) for task in tasks))
 
-    # Независимо от того, были ли созданы JSON файлы или нет, извлеките текст и удалите файлы JSON
+    
     extract_all_phrase_to_text(sys.argv[1])
 
     
@@ -96,7 +96,7 @@ async def write_data(data, file_name):
 def extract_all_phrase_to_text(directory):
     all_phrases = []
     
-    # Извлечение 'all_phrase' из каждого файла
+    
     for filename in os.listdir(directory):
         if filename.endswith('.json'):
             with open(os.path.join(directory, filename), 'r', encoding='utf-8') as file:
@@ -105,10 +105,10 @@ def extract_all_phrase_to_text(directory):
                     if 'all_phrase' in entry:
                         all_phrases.append(entry['all_phrase'])
 
-    # Добавление извлеченных фраз в существующий текстовый файл (или создание нового, если он не существует)
-    with open(os.path.join(directory, 'all_phrases.txt'), 'a', encoding='utf-8') as file:  # Используйте 'a' для добавления
+    
+    with open(os.path.join(directory, 'all_phrases.txt'), 'a', encoding='utf-8') as file:  
         for phrase in all_phrases:
-            if phrase.strip():  # Исключение пустых строк
+            if phrase.strip(): 
                 file.write(f"1 {phrase}\n")
 
     # Удаление исходных файлов JSON
