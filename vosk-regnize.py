@@ -4,7 +4,12 @@ import sys
 import wave
 import os
 import json
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument('input_folder', type=str, help='Путь к директории с аудиофайлами')
+parser.add_argument('output_file', type=str, help='Путь к файлу для записи результатов')
+args = parser.parse_args()
 uri_ws = 'ws://95.216.166.56:2700'
 # uri_ws = 'ws://localhost:2700'
 
@@ -12,19 +17,23 @@ async def read_dir():
     if len(sys.argv) == 1: 
         print('Invalid arg')
         return
-    if not os.path.exists(sys.argv[1]):
+    if not os.path.exists(args.input_folder):
         print('Err path!')
         return
-    files = os.listdir(sys.argv[1])
+    if os.path.isfile(args.output_file):
+        print(f"{args.output_file} является файлом")
+    else:
+        print(f"{args.output_file} не является файлом")
+    
+    files = os.listdir(args.input_folder) 
     
     # Если JSON файлы не существуют, записать их
-    if not has_json_files(sys.argv[1]):
+    if not has_json_files(args.output_file):
         tasks = []
         for file in files:
             if '.wav' in file:
-                tasks.append(recognize(sys.argv[1]+'/'+file))
+                tasks.append(recognize(os.path.join(args.input_folder, file)))
 
-        # Ограничение на количество одновременно запущенных задач (например, 5)
         sem = asyncio.Semaphore(5)
 
         async def process_with_semaphore(task):
@@ -38,7 +47,6 @@ async def read_dir():
 
     
 def has_json_files(directory):
-    """Проверяет директорию на наличие файлов с расширением .json."""
     for filename in os.listdir(directory):
         if filename.endswith('.json'):
             return True
@@ -55,7 +63,7 @@ async def recognize(file):
         while True:
             data = wf.readframes(buffer_size)
 
-            if len(data) == 0:
+            if len (data)== 0:
                 break
 
             await websocket.send(data)
@@ -93,28 +101,26 @@ async def write_data(data, file_name):
     with open(file_name, "w", encoding="utf-8") as file:
         json.dump(write_data, file, ensure_ascii=False, indent=4)
         
-def extract_all_phrase_to_text(directory):
+def extract_all_phrase_to_text(output_file):
     all_phrases = []
     
-    
-    for filename in os.listdir(directory):
+    for filename in os.listdir(output_file):
         if filename.endswith('.json'):
-            with open(os.path.join(directory, filename), 'r', encoding='utf-8') as file:
+            with open(os.path.join(output_file, filename), 'r', encoding='utf-8') as file:
                 data = json.load(file)
                 for entry in data:
                     if 'all_phrase' in entry:
                         all_phrases.append(entry['all_phrase'])
-
     
-    with open(os.path.join(directory, 'all_phrases.txt'), 'a', encoding='utf-8') as file:  
+    with open(output_file, 'a', encoding='utf-8') as file:
         for phrase in all_phrases:
             if phrase.strip(): 
                 file.write(f"1 {phrase}\n")
-
+    
     # Удаление исходных файлов JSON
-    for filename in os.listdir(directory):
+    for filename in os.listdir(output_file):
         if filename.endswith('.json'):
-            os.remove(os.path.join(directory, filename))
+            os.remove(os.path.join(output_file, filename))
 
             
     
